@@ -1,0 +1,57 @@
+.menu {
+	width: 0px;
+	height: 0px;
+
+	&,
+	div {
+		position: relative;
+		overflow: visible;
+	}
+
+	>#sidebar {
+		width: fit-content;
+		height: fit-content;
+		left: 0px;
+		background-color: black;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-around;
+
+		>div {
+			background-color: white;
+			width: 40px;
+			height: 40px;
+			margin-bottom: 10px;
+			margin-left: 10px;
+			margin-right: 10px;
+		}
+
+		#mining {
+			margin-top: 10px;
+		}
+
+		#production {
+			width: 40px;
+		}
+
+		#energy {
+			width: 40px;
+		}
+
+		#weaponry {
+			width: 40px;
+		}
+
+		#logic {
+			width: 40px;
+		}
+
+		#utility {
+			width: 40px;
+		}
+
+		#storage {
+			width: 40px;
+		}
+	}
+}
