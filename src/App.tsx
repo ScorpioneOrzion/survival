@@ -63,41 +63,56 @@ const App: Component = () => {
 		const scaledWidth = unScale(width());
 		const scaledHeight = unScale(height());
 
-		const viewRect = {
-			x1: -unscaledStagePosX,
-			y1: -unscaledStagePosY,
-			x2: scaledWidth - unscaledStagePosX,
-			y2: scaledHeight - unscaledStagePosY
-		};
-
 		const gridOffsetX = Math.ceil(unscaledStagePosX / stepSize) * stepSize;
 		const gridOffsetY = Math.ceil(unscaledStagePosY / stepSize) * stepSize;
 
-		const fullRect = {
-			x1: Math.min(0, -gridOffsetX),
-			y1: Math.min(0, -gridOffsetY),
-			x2: Math.max(stage.width(), scaledWidth - gridOffsetX + stepSize),
-			y2: Math.max(stage.height(), scaledHeight - gridOffsetY + stepSize)
-		};
-
-		const clip = { x: viewRect.x1, y: viewRect.y1, width: viewRect.x2 - viewRect.x1, height: viewRect.y2 - viewRect.y1 }
+		const clip = { x: -unscaledStagePosX, y: -unscaledStagePosY, width: scaledWidth, height: scaledHeight }
 
 		layers[Layers.grid].clear()
 		layers[Layers.grid].destroyChildren()
 
 		for (const layer of Layers) { layers[layer].clip(clip) }
 
-		const xSize = fullRect.x2 - fullRect.x1;
-		const ySize = fullRect.y2 - fullRect.y1;
+		const xSize = scaledWidth + stepSize;
+		const ySize = scaledHeight + stepSize;
 		const xSteps = Math.round(xSize / stepSize);
 		const ySteps = Math.round(ySize / stepSize);
+		const step5 = stepSize * 5
+		const xStart = (gridOffsetX % step5 + step5) % step5 / stepSize;
+		const yStart = (gridOffsetY % step5 + step5) % step5 / stepSize;
+
+
+		//draw Vertical lines
+		for (let i = xStart; i <= xSteps; i += 5) {
+			layers[Layers.grid].add(
+				new Konva.Line({
+					x: -gridOffsetX + i * stepSize,
+					y: -gridOffsetY,
+					points: [0, 0, 0, ySize],
+					stroke: 'rgba(0, 0, 0, 0.2)',
+					strokeWidth: 2,
+				})
+			);
+		}
+		//draw Horizontal lines
+		for (let i = yStart; i <= ySteps; i += 5) {
+			layers[Layers.grid].add(
+				new Konva.Line({
+					x: -gridOffsetX,
+					y: -gridOffsetY + i * stepSize,
+					points: [0, 0, xSize, 0],
+					stroke: 'rgba(0, 0, 0, 0.2)',
+					strokeWidth: 2,
+				})
+			);
+		}
 
 		//draw Vertical lines
 		for (let i = 0; i <= xSteps; i++) {
 			layers[Layers.grid].add(
 				new Konva.Line({
-					x: fullRect.x1 + i * stepSize,
-					y: fullRect.y1,
+					x: -gridOffsetX + i * stepSize,
+					y: -gridOffsetY,
 					points: [0, 0, 0, ySize],
 					stroke: 'rgba(0, 0, 0, 0.2)',
 					strokeWidth: 2,
@@ -108,8 +123,8 @@ const App: Component = () => {
 		for (let i = 0; i <= ySteps; i++) {
 			layers[Layers.grid].add(
 				new Konva.Line({
-					x: fullRect.x1,
-					y: fullRect.y1 + i * stepSize,
+					x: -gridOffsetX,
+					y: -gridOffsetY + i * stepSize,
 					points: [0, 0, xSize, 0],
 					stroke: 'rgba(0, 0, 0, 0.2)',
 					strokeWidth: 2,
@@ -215,6 +230,7 @@ const App: Component = () => {
 
 	onMount(() => {
 		worker = new Structure();
+		worker.terminate()
 		setupStage();
 		addEventListeners();
 		drawBackground();
