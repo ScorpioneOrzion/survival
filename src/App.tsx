@@ -63,9 +63,6 @@ const App: Component = () => {
 		const scaledWidth = unScale(width());
 		const scaledHeight = unScale(height());
 
-		const gridOffsetX = Math.ceil(unscaledStagePosX / stepSize) * stepSize;
-		const gridOffsetY = Math.ceil(unscaledStagePosY / stepSize) * stepSize;
-
 		const clip = { x: -unscaledStagePosX, y: -unscaledStagePosY, width: scaledWidth, height: scaledHeight }
 
 		layers[Layers.grid].clear()
@@ -78,6 +75,10 @@ const App: Component = () => {
 		const xSteps = Math.round(xSize / stepSize);
 		const ySteps = Math.round(ySize / stepSize);
 		const step5 = stepSize * 5
+
+		const gridOffsetX = Math.ceil(unscaledStagePosX / stepSize) * stepSize;
+		const gridOffsetY = Math.ceil(unscaledStagePosY / stepSize) * stepSize;
+
 		const xStart = (gridOffsetX % step5 + step5) % step5 / stepSize;
 		const yStart = (gridOffsetY % step5 + step5) % step5 / stepSize;
 
