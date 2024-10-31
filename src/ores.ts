@@ -1,4 +1,4 @@
-import { stepSize } from "./helper/constants";
+import { stepSize, colors } from "./helper/constants";
 import Konva from "konva";
 
 function createOre(color: string, { x, y }: { x: number, y: number }) {
@@ -30,6 +30,4 @@ function createOre(color: string, { x, y }: { x: number, y: number }) {
 	return ore
 }
 
-export const RED = ({ x, y }: { x: number, y: number }) => createOre('red', { x, y })
-export const BLUE = ({ x, y }: { x: number, y: number }) => createOre('blue', { x, y })
-export const GREEN = ({ x, y }: { x: number, y: number }) => createOre('green', { x, y })
+export default colors.map(color => ({ x, y }: { x: number, y: number }) => createOre(color, { x, y }))

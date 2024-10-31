@@ -4,8 +4,8 @@ import styles from './App.module.css';
 import { KonvaEventObject } from 'konva/lib/Node';
 import Structure from './workers/structures?worker';
 import { getOffsetPosition, getGridPoint, getLocation } from './helper/functions';
-import { borderSize, Layers, scales, stepSize } from './helper/constants';
-import { BLUE, GREEN, RED } from './ores';
+import { borderSize, colors, Layers, scales, stepSize } from './helper/constants';
+import ORES from './ores';
 
 const channel = new BroadcastChannel('test')
 
@@ -14,9 +14,7 @@ channel.onmessage = ev => {
 }
 
 const structures = [
-	[1, 1, 0], [2, 1, 2], [3, 1, 1],
-	[1, 2, 1], [2, 2, 0], [3, 2, 2],
-	[1, 3, 2], [2, 3, 1], [3, 3, 0],
+	...colors.map((_, i) => colors.map((_, j) => [i, j, Math.random() * colors.length | 0])).flat(1)
 ] as const
 
 const App: Component = () => {
@@ -68,8 +66,9 @@ const App: Component = () => {
 
 		layers[Layers.grid].clear()
 		layers[Layers.grid].destroyChildren()
+		layers[Layers.grid].clip(clip)
 
-		for (const layer of Layers) { layers[layer].clip(clip) }
+		return
 
 		const xSize = scaledWidth + stepSize;
 		const ySize = scaledHeight + stepSize;
@@ -166,7 +165,6 @@ const App: Component = () => {
 		})
 
 		stage.batchDraw()
-		drawBackground()
 	}
 
 	function setupStage() {
@@ -202,19 +200,11 @@ const App: Component = () => {
 			layers[Layers.structure].add(
 				(() => {
 					worker.postMessage({ addStructure: type, x, y })
-					switch (type) {
-						case 0:
-							return RED(position)
-						case 1:
-							return GREEN(position)
-						case 2:
-							return BLUE(position)
-					}
+					return ORES[type](position)
 				})()
 			)
 		}
 
-		stage.on('dragmove', drawBackground);
 		stage.on('wheel', handleWheel);
 	}
 
@@ -233,7 +223,6 @@ const App: Component = () => {
 		worker.terminate()
 		setupStage();
 		addEventListeners();
-		drawBackground();
 	})
 
 	onCleanup(() => {
