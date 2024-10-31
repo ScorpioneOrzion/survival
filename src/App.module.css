@@ -8,10 +8,31 @@
 		overflow: visible;
 	}
 
+	>#topbar {
+		width: 100vw;
+		display: flex;
+		height: 45px;
+		padding: 5px;
+		flex-direction: column;
+		flex-wrap: wrap;
+		align-content: flex-start;
+		gap: 5px;
+		justify-content: space-around;
+		left: 0;
+		top: 0px;
+		background-color: #07344e;
+
+		.resource {
+			width: 50px;
+			height: 20px;
+			background-color: #0e5804a2;
+		}
+	}
+
 	>#sidebar {
 		width: fit-content;
 		height: fit-content;
-		left: 0px;
+		top: 0px;
 		background-color: black;
 		display: flex;
 		flex-direction: column;

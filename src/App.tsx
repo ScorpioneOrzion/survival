@@ -5,6 +5,7 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import Structure from './workers/structures?worker';
 import { getOffsetPosition, getGridPoint, getLocation } from './helper/functions';
 import { borderSize, Layers, scales, stepSize } from './helper/constants';
+import { BLUE, GREEN, RED } from './ores';
 
 const channel = new BroadcastChannel('test')
 
@@ -200,17 +201,15 @@ const App: Component = () => {
 			const position = getOffsetPosition({ x, y })
 			layers[Layers.structure].add(
 				(() => {
-					const rect = new Konva.Rect({
-						x: position.x,
-						y: position.y,
-						width: stepSize - borderSize,
-						height: stepSize - borderSize,
-						fill: 'red',
-						stroke: 'black',
-						strokeWidth: borderSize
-					})
 					worker.postMessage({ addStructure: type, x, y })
-					return rect
+					switch (type) {
+						case 0:
+							return RED(position)
+						case 1:
+							return GREEN(position)
+						case 2:
+							return BLUE(position)
+					}
 				})()
 			)
 		}
@@ -244,6 +243,12 @@ const App: Component = () => {
 
 	return (
 		<div class={styles.menu}>
+			<div id={styles.topbar}>
+				<div id={styles.resource1} class={styles.resource}></div>
+				<div id={styles.resource2} class={styles.resource}></div>
+				<div id={styles.resource3} class={styles.resource}></div>
+				<div id={styles.resource4} class={styles.resource}></div>
+			</div>
 			<div id={styles.sidebar}>
 				<div id={styles.mining}></div>
 				<div id={styles.production}></div>
