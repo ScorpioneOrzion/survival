@@ -1,26 +1,42 @@
-import { createSignal, onCleanup, onMount, type Component } from 'solid-js';
+import { createSignal, For, onCleanup, onMount, type Component } from 'solid-js';
+import { createStore } from 'solid-js/store'
+import { styled } from 'solid-styled-components'
 import Konva from "konva";
 import styles from './App.module.css';
 import { KonvaEventObject } from 'konva/lib/Node';
 import Structure from './workers/structures?worker';
 import { getOffsetPosition, getGridPoint, getLocation } from './helper/functions';
-import { borderSize, colors, Layers, scales, stepSize } from './helper/constants';
+import { colors, Layers, scales, types } from './helper/constants';
 import ORES from './ores';
 
 const channel = new BroadcastChannel('test')
+channel.postMessage('close')
+
+const postMessagesHold: {}[] = []
 
 channel.onmessage = ev => {
-	console.log(ev.data)
+	const { data } = ev
+	if (data === 'close') {
+		channel.close()
+	} else if (data === 'init') {
+		postMessagesHold.forEach(data => channel.postMessage(data))
+		postMessagesHold.length = 0;
+	} else if (data === 'ready') {
+		channel.postMessage('getAll')
+	}
 }
 
 const structures = [
-	...colors.map((_, i) => colors.map((_, j) => [i, j, Math.random() * colors.length | 0])).flat(1)
+	...colors.map((_, i) => colors.map((_, j) => [i, j, 0, Math.random() * colors.length | 0] as const)).flat(1)
 ] as const
+
+const Resource = styled('div')(props => ({ backgroundColor: props.color }));
 
 const App: Component = () => {
 	const [width, setWidth] = createSignal(window.innerWidth);
 	const [height, setHeight] = createSignal(window.innerHeight);
 	const [currentScale, setCurrentScale] = createSignal(6);
+	const [TotalResources, setTotalResources] = createStore<bigint[]>(colors.map(() => 0n))
 	let stage: Konva.Stage, worker: Worker;
 	const layers: { [key: number]: Konva.Layer } = {};
 
@@ -49,90 +65,6 @@ const App: Component = () => {
 		setHeight(window.innerHeight);
 		stage.width(width());
 		stage.height(height());
-	}
-
-	function unScale(val: number) {
-		return val / stage.scaleX()
-	}
-
-	function drawBackground() {
-		const stagePos = stage.position();
-		const unscaledStagePosX = unScale(stagePos.x);
-		const unscaledStagePosY = unScale(stagePos.y);
-		const scaledWidth = unScale(width());
-		const scaledHeight = unScale(height());
-
-		const clip = { x: -unscaledStagePosX, y: -unscaledStagePosY, width: scaledWidth, height: scaledHeight }
-
-		layers[Layers.grid].clear()
-		layers[Layers.grid].destroyChildren()
-		layers[Layers.grid].clip(clip)
-
-		return
-
-		const xSize = scaledWidth + stepSize;
-		const ySize = scaledHeight + stepSize;
-		const xSteps = Math.round(xSize / stepSize);
-		const ySteps = Math.round(ySize / stepSize);
-		const step5 = stepSize * 5
-
-		const gridOffsetX = Math.ceil(unscaledStagePosX / stepSize) * stepSize;
-		const gridOffsetY = Math.ceil(unscaledStagePosY / stepSize) * stepSize;
-
-		const xStart = (gridOffsetX % step5 + step5) % step5 / stepSize;
-		const yStart = (gridOffsetY % step5 + step5) % step5 / stepSize;
-
-
-		//draw Vertical lines
-		for (let i = xStart; i <= xSteps; i += 5) {
-			layers[Layers.grid].add(
-				new Konva.Line({
-					x: -gridOffsetX + i * stepSize,
-					y: -gridOffsetY,
-					points: [0, 0, 0, ySize],
-					stroke: 'rgba(0, 0, 0, 0.2)',
-					strokeWidth: 2,
-				})
-			);
-		}
-		//draw Horizontal lines
-		for (let i = yStart; i <= ySteps; i += 5) {
-			layers[Layers.grid].add(
-				new Konva.Line({
-					x: -gridOffsetX,
-					y: -gridOffsetY + i * stepSize,
-					points: [0, 0, xSize, 0],
-					stroke: 'rgba(0, 0, 0, 0.2)',
-					strokeWidth: 2,
-				})
-			);
-		}
-
-		//draw Vertical lines
-		for (let i = 0; i <= xSteps; i++) {
-			layers[Layers.grid].add(
-				new Konva.Line({
-					x: -gridOffsetX + i * stepSize,
-					y: -gridOffsetY,
-					points: [0, 0, 0, ySize],
-					stroke: 'rgba(0, 0, 0, 0.2)',
-					strokeWidth: 2,
-				})
-			);
-		}
-		//draw Horizontal lines
-		for (let i = 0; i <= ySteps; i++) {
-			layers[Layers.grid].add(
-				new Konva.Line({
-					x: -gridOffsetX,
-					y: -gridOffsetY + i * stepSize,
-					points: [0, 0, xSize, 0],
-					stroke: 'rgba(0, 0, 0, 0.2)',
-					strokeWidth: 2,
-				})
-			);
-		}
-		layers[Layers.grid].batchDraw();
 	}
 
 	function handleWheel(e: KonvaEventObject<WheelEvent, typeof stage>) {
@@ -195,15 +127,17 @@ const App: Component = () => {
 			}
 		});
 
-		for (const [x, y, type] of structures) {
+		for (const [x, y, type, arg] of structures) {
 			const position = getOffsetPosition({ x, y })
 			layers[Layers.structure].add(
 				(() => {
-					worker.postMessage({ addStructure: type, x, y })
-					return ORES[type](position)
+					postMessagesHold.push({ addStructure: type, x, y, arg });
+					return ORES[arg](position)
 				})()
 			)
 		}
+
+		postMessagesHold.push("end");
 
 		stage.on('wheel', handleWheel);
 	}
@@ -220,7 +154,6 @@ const App: Component = () => {
 
 	onMount(() => {
 		worker = new Structure();
-		worker.terminate()
 		setupStage();
 		addEventListeners();
 	})
@@ -233,21 +166,16 @@ const App: Component = () => {
 	return (
 		<div class={styles.menu}>
 			<div id={styles.topbar}>
-				<div id={styles.resource1} class={styles.resource}></div>
-				<div id={styles.resource2} class={styles.resource}></div>
-				<div id={styles.resource3} class={styles.resource}></div>
-				<div id={styles.resource4} class={styles.resource}></div>
-			</div>
+				<For each={colors}>{
+					(item, index) => <Resource color={`${item}dd`} class={styles.resource}><span>{TotalResources[index()].toString()}</span> </Resource>
+				}</For>
+			</div >
 			<div id={styles.sidebar}>
-				<div id={styles.mining}></div>
-				<div id={styles.production}></div>
-				<div id={styles.energy}></div>
-				<div id={styles.weaponry}></div>
-				<div id={styles.logic}></div>
-				<div id={styles.utility}></div>
-				<div id={styles.storage}></div>
+				<For each={types}>{
+					(item) => <button type='button' title={item} id={styles[item]}></button>
+				}</For>
 			</div>
-		</div>
+		</div >
 	);
 };
 
